@@ -168,7 +168,10 @@ snapshots, network and console) and a page snapshot (`error-context.md`). On a r
    a blob report, also when tests fail.
 3. **report**: merges the blob reports into one HTML report for all four projects (artifact `playwright-report`).
 
-On CI there are 2 retries, 2 workers per job, and `forbidOnly`, so a forgotten `test.only` fails the build.
+On CI there are 2 retries, 2 workers per job, and `forbidOnly`, so a forgotten `test.only` fails the build. Each test
+job also uploads its JUnit XML (`junit-<project>`), which [Automation Coverage & Quality Intelligence](https://github.com/niranjankagri/automation-coverage-quality-intelligence) collects.
+
+`main` is protected by a ruleset: every change goes through a pull request, and the CI jobs above must pass before it is merged.
 
 ## Lessons from building it
 
@@ -185,3 +188,7 @@ On CI there are 2 retries, 2 workers per job, and `forbidOnly`, so a forgotten `
   covered: the redirect is checked before the skip, the API tests log in, and the checkout tests log in through the API.
 - Recording a video of every test (`retain-on-failure`) cost about 25 s per test locally, which the trace showed as
   teardown time; `on-first-retry` keeps video for the runs that need it.
+
+## License
+
+[MIT](LICENSE)
