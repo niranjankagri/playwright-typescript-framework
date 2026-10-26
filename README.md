@@ -188,6 +188,12 @@ Dependabot proposes dependency and GitHub Actions updates once a month (minor an
   [`skipIfBotCheck()`](src/utils/botCheck.ts) waits for the account page or the check page and, on the check page,
   marks the two form-login tests as **skipped with that reason**. They run in full locally. On CI the login is still
   covered: the redirect is checked before the skip, the API tests log in, and the checkout tests log in through the API.
+- The checkout test was flaky in CI (3 of 12 runs, passed on retry): the page stayed on "Payment was successful".
+  The trace showed why: `POST /invoices` answered **422** "The city does not belong to the selected country" for the
+  same valid address (1010 Vienna, Austria) that the retry ordered successfully, and the page shows no error. That is
+  the shared demo rejecting a valid order, so the test is not changed to get around it;
+  [`payWith()`](src/pages/CheckoutPage.ts) now waits for that response and fails with the shop's own reason instead
+  of a 10 s wait for a confirmation that never comes.
 - Recording a video of every test (`retain-on-failure`) cost about 25 s per test locally, which the trace showed as
   teardown time; `on-first-retry` keeps video for the runs that need it.
 

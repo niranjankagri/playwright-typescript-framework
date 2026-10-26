@@ -121,13 +121,25 @@ export class CheckoutPage extends BasePage {
     await this.proceedFromAddressButton.click();
   }
 
-  /** Step 4: choose a payment method, have it checked, then confirm the order. */
+  /**
+   * Step 4: choose a payment method, have it checked, then confirm the order.
+   * Confirm places the order with POST /invoices. The shared demo sometimes rejects a valid
+   * address there (422 "The city does not belong to the selected country" for 1010 Vienna, AT
+   * in CI run 40276006707; the retry with the same data passed) and the page shows nothing,
+   * so the API's answer is checked here: a rejected order fails with the shop's reason
+   * instead of a 10 s wait for a confirmation that never comes.
+   */
   @step('Checkout step 4: pay with {0}')
   async payWith(method: PaymentMethod): Promise<void> {
     await this.paymentMethodSelect.selectOption({ label: method });
     await this.finishButton.click();
     await expect(this.paymentSuccessMessage).toHaveText('Payment was successful');
+    const order = this.page.waitForResponse(
+      (response) => response.url().endsWith('/invoices') && response.request().method() === 'POST',
+    );
     await this.finishButton.click();
+    const response = await order;
+    expect(response.ok(), `the shop rejected the order: ${response.status()} ${await response.text()}`).toBe(true);
   }
 
   /** Checks the confirmation and returns the invoice number, e.g. "INV-2026000005". */
