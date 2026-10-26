@@ -84,6 +84,17 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      # The same results as Playwright's JSON report, which keeps every retry attempt
+      # (JUnit shows a test that passed on a retry as passed)
+      - name: Keep the JSON results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-json-${{ matrix.project }}
+          path: test-results/results.json
+          if-no-files-found: warn
+          retention-days: 30
+
   report:
     name: Merge HTML report
     needs: tests

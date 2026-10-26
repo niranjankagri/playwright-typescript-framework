@@ -169,7 +169,9 @@ snapshots, network and console) and a page snapshot (`error-context.md`). On a r
 3. **report**: merges the blob reports into one HTML report for all four projects (artifact `playwright-report`).
 
 On CI there are 2 retries, 2 workers per job, and `forbidOnly`, so a forgotten `test.only` fails the build. Each test
-job also uploads its JUnit XML (`junit-<project>`), which [Automation Coverage & Quality Intelligence](https://github.com/niranjankagri/automation-coverage-quality-intelligence) collects.
+job also uploads its JUnit XML (`junit-<project>`) and Playwright's JSON report (`playwright-json-<project>`), which
+[Automation Coverage & Quality Intelligence](https://github.com/niranjankagri/automation-coverage-quality-intelligence) collects. The JSON keeps every
+retry attempt: JUnit records a test that passed on a retry as plain passed, so flaky tests are only visible there.
 
 Dependabot proposes dependency and GitHub Actions updates once a month (minor and patch updates grouped, major versions as separate pull requests).
 

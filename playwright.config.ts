@@ -31,6 +31,9 @@ export default defineConfig({
         ['list'],
         ['blob', { fileName: `report-${process.env.BLOB_NAME ?? 'all'}.zip` }],
         ['junit', { outputFile: 'test-results/junit.xml' }],
+        // JUnit records a test that passed on a retry as plain passed; the JSON report keeps every
+        // attempt, so Quality Intelligence can show such tests as flaky
+        ['json', { outputFile: 'test-results/results.json' }],
       ]
     : [['list'], ['html', { open: 'never' }]],
 
