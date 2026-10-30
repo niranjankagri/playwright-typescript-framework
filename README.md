@@ -158,8 +158,9 @@ every test and throwing it away on success made each test about 25 seconds slowe
 
 ## Reports
 
-Playwright's HTML report (`npm run report`, or the `playwright-report` artifact of a CI run). A full local run, 95 of
-95 passed, API first:
+Playwright's HTML report (`npm run report`, or the `playwright-report` artifact of a CI run). The CI run on `main` of 30 Oct 2026
+(Chromium, Firefox, WebKit and API, merged): 88 passed, 1 flaky (passed on its retry), 6 skipped; every test named with
+its case ID:
 
 ![HTML report overview](docs/images/report-overview.png)
 
