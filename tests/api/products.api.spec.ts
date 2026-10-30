@@ -2,7 +2,7 @@ import { expect, test } from '../../src/fixtures/test';
 import { isSorted } from '../../src/utils/sorting';
 
 test.describe('Products API', { tag: '@products' }, () => {
-  test('first page matches the paging contract', { tag: '@smoke' }, async ({ productsApi }) => {
+  test('[TC-215] first page matches the paging contract', { tag: '@smoke' }, async ({ productsApi }) => {
     // list() already validates every product against ProductSchema.
     const page = await productsApi.list();
 
@@ -11,7 +11,7 @@ test.describe('Products API', { tag: '@products' }, () => {
     expect(page.last_page).toBe(Math.ceil(page.total / page.per_page));
   });
 
-  test('pages do not overlap', async ({ productsApi }) => {
+  test('[TC-216] pages do not overlap', async ({ productsApi }) => {
     const first = await productsApi.list({ page: 1 });
     const second = await productsApi.list({ page: 2 });
 
@@ -20,7 +20,7 @@ test.describe('Products API', { tag: '@products' }, () => {
     expect(second.data.filter((product) => firstIds.has(product.id))).toEqual([]);
   });
 
-  test('a product can be fetched by id', async ({ productsApi }) => {
+  test('[TC-217] a product can be fetched by id', async ({ productsApi }) => {
     const [listed] = (await productsApi.list()).data;
 
     const product = await productsApi.getProduct(listed.id);
@@ -29,14 +29,14 @@ test.describe('Products API', { tag: '@products' }, () => {
     expect(product).toMatchObject({ id: listed.id, name: listed.name, price: listed.price });
   });
 
-  test('unknown product id returns 404', { tag: '@negative' }, async ({ productsApi }) => {
+  test('[TC-218] unknown product id returns 404', { tag: '@negative' }, async ({ productsApi }) => {
     const response = await productsApi.getById('01ZZZZZZZZZZZZZZZZZZZZZZZZ');
 
     expect(response.status()).toBe(404);
     expect(await response.json()).toEqual({ message: 'Requested item not found' });
   });
 
-  test('search returns only matching products', { tag: '@smoke' }, async ({ productsApi }) => {
+  test('[TC-219] search returns only matching products', { tag: '@smoke' }, async ({ productsApi }) => {
     const result = await productsApi.search('hammer');
 
     expect(result.total).toBeGreaterThan(0);
@@ -45,15 +45,19 @@ test.describe('Products API', { tag: '@products' }, () => {
     }
   });
 
-  test('search without a match returns an empty page', { tag: '@negative' }, async ({ productsApi }) => {
+  test('[TC-220] search without a match returns an empty page', { tag: '@negative' }, async ({ productsApi }) => {
     const result = await productsApi.search('no-such-tool-xyz');
 
     expect(result.total).toBe(0);
     expect(result.data).toEqual([]);
   });
 
-  for (const direction of ['asc', 'desc'] as const) {
-    test(`sort by price ${direction} is applied by the API`, async ({ productsApi }) => {
+  // TC-221: ascending, TC-222: descending
+  for (const [id, direction] of [
+    ['TC-221', 'asc'],
+    ['TC-222', 'desc'],
+  ] as const) {
+    test(`[${id}] sort by price ${direction} is applied by the API`, async ({ productsApi }) => {
       const page = await productsApi.list({ sort: `price,${direction}` });
 
       const prices = page.data.map((product) => product.price);
@@ -61,7 +65,7 @@ test.describe('Products API', { tag: '@products' }, () => {
     });
   }
 
-  test('category filter returns only that category', async ({ productsApi }) => {
+  test('[TC-223] category filter returns only that category', async ({ productsApi }) => {
     // Take the category id from a known product instead of hard-coding it.
     const hammer = await productsApi.findByName('Claw Hammer');
 

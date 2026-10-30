@@ -7,7 +7,7 @@ test.describe('Product catalogue', { tag: '@catalog' }, () => {
     await homePage.open();
   });
 
-  test('home page shows a full first page of products', { tag: '@smoke' }, async ({ homePage }) => {
+  test('[TC-101] home page shows a full first page of products', { tag: '@smoke' }, async ({ homePage }) => {
     // The shop pages its catalogue by 9 products.
     await expect(homePage.productCards).toHaveCount(9);
     // Every card has a name and a price.
@@ -15,7 +15,7 @@ test.describe('Product catalogue', { tag: '@catalog' }, () => {
     await expect(homePage.productPrices).toHaveCount(9);
   });
 
-  test('search shows only matching products', { tag: '@smoke' }, async ({ homePage, productsApi }) => {
+  test('[TC-102] search shows only matching products', { tag: '@smoke' }, async ({ homePage, productsApi }) => {
     // The demo is shared and its data can change, so the expected count comes from the API now.
     const expected = await productsApi.search('pliers');
 
@@ -28,14 +28,14 @@ test.describe('Product catalogue', { tag: '@catalog' }, () => {
     }
   });
 
-  test('search without a match says so', { tag: '@negative' }, async ({ homePage }) => {
+  test('[TC-103] search without a match says so', { tag: '@negative' }, async ({ homePage }) => {
     await homePage.search('no-such-tool-xyz');
 
     await expect(homePage.noResultsMessage).toHaveText('There are no products found.');
     await expect(homePage.productCards).toHaveCount(0);
   });
 
-  test('category filter shows the same products as the API', async ({ homePage, productsApi }) => {
+  test('[TC-104] category filter shows the same products as the API', async ({ homePage, productsApi }) => {
     // Other people's tests add products to the shared demo (e.g. into "Hammer"), so neither
     // a fixed count nor "every name contains hammer" holds. The API is the source of truth.
     const hammer = await productsApi.findByName('Claw Hammer');
@@ -49,15 +49,15 @@ test.describe('Product catalogue', { tag: '@catalog' }, () => {
   });
 
   // One test per sort option, generated from this table.
-  const sortCases: { option: SortOption; by: 'name' | 'price'; direction: SortDirection }[] = [
-    { option: 'Name (A - Z)', by: 'name', direction: 'asc' },
-    { option: 'Name (Z - A)', by: 'name', direction: 'desc' },
-    { option: 'Price (Low - High)', by: 'price', direction: 'asc' },
-    { option: 'Price (High - Low)', by: 'price', direction: 'desc' },
+  const sortCases: { id: string; option: SortOption; by: 'name' | 'price'; direction: SortDirection }[] = [
+    { id: 'TC-105', option: 'Name (A - Z)', by: 'name', direction: 'asc' },
+    { id: 'TC-106', option: 'Name (Z - A)', by: 'name', direction: 'desc' },
+    { id: 'TC-107', option: 'Price (Low - High)', by: 'price', direction: 'asc' },
+    { id: 'TC-108', option: 'Price (High - Low)', by: 'price', direction: 'desc' },
   ];
 
-  for (const { option, by, direction } of sortCases) {
-    test(`sort "${option}" orders the products by ${by}`, async ({ homePage }) => {
+  for (const { id, option, by, direction } of sortCases) {
+    test(`[${id}] sort "${option}" orders the products by ${by}`, async ({ homePage }) => {
       await homePage.sortBy(option);
 
       // The grid re-renders after the API answers. expect.poll re-reads it until the order

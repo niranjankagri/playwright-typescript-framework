@@ -12,7 +12,7 @@ import { expect, test } from '../../src/fixtures/test';
 const PRODUCT_LIST = new RegExp(`^${env.apiUrl}/products(\\?.*)?$`);
 
 test.describe('Catalogue with a mocked API', { tag: '@network' }, () => {
-  test('renders exactly the products the API sends', async ({ page, homePage }) => {
+  test('[TC-120] renders exactly the products the API sends', async ({ page, homePage }) => {
     const products = [
       buildProduct({ name: 'Mocked Mallet', price: 1.23 }),
       buildProduct({ name: 'Mocked Spanner', price: 45.6 }),
@@ -26,7 +26,7 @@ test.describe('Catalogue with a mocked API', { tag: '@network' }, () => {
     await expect(homePage.productPrices).toHaveText(['$1.23', '$45.60']);
   });
 
-  test('shows a message when the API returns no products', async ({ page, homePage }) => {
+  test('[TC-121] shows a message when the API returns no products', async ({ page, homePage }) => {
     await page.route(PRODUCT_LIST, (route) => route.fulfill({ json: buildProductPage([]) }));
 
     await page.goto('/');
@@ -35,7 +35,7 @@ test.describe('Catalogue with a mocked API', { tag: '@network' }, () => {
     await expect(homePage.productCards).toHaveCount(0);
   });
 
-  test('a failing product API leaves the rest of the page working', async ({ page, homePage }) => {
+  test('[TC-122] a failing product API leaves the rest of the page working', async ({ page, homePage }) => {
     await page.route(PRODUCT_LIST, (route) => route.fulfill({ status: 500, json: { message: 'Server Error' } }));
 
     await page.goto('/');
@@ -50,7 +50,7 @@ test.describe('Catalogue with a mocked API', { tag: '@network' }, () => {
 });
 
 test.describe('Requests the front end sends', { tag: '@network' }, () => {
-  test('sorting asks the API for sorted data', async ({ page, homePage }) => {
+  test('[TC-123] sorting asks the API for sorted data', async ({ page, homePage }) => {
     await homePage.open();
 
     // Start listening before the action that triggers the request, so it cannot be missed.
@@ -67,7 +67,7 @@ test.describe('Requests the front end sends', { tag: '@network' }, () => {
     expect(request.postDataJSON()).toMatchObject({ sort: 'price,asc' });
   });
 
-  test('search sends the search term to the search endpoint', async ({ page, homePage }) => {
+  test('[TC-124] search sends the search term to the search endpoint', async ({ page, homePage }) => {
     await homePage.open();
 
     const searchResponse = page.waitForResponse(`${env.apiUrl}/products/search`);
