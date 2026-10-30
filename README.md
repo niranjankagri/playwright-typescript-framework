@@ -84,6 +84,19 @@ playwright.config.ts       projects, timeouts, reporters, evidence on failure
 .github/workflows/ci.yml   CI pipeline
 ```
 
+## Test cases
+
+Every automated test starts with its case ID, e.g. `[TC-113] card and detail page show the same
+name and price`, and every case is written out for a manual run (preconditions, test data, steps,
+expected results) in **[docs/manual-test-cases.md](docs/manual-test-cases.md)**:
+
+| IDs              | Area                                                                  |
+| ---------------- | --------------------------------------------------------------------- |
+| TC-101 to TC-124 | UI: catalogue, sorting, login, product page, checkout, mocked network |
+| TC-201 to TC-223 | API: auth, carts, products                                            |
+
+Run one case in every browser: `npx playwright test -g "TC-116"`.
+
 ## Design decisions
 
 **Page objects and a header component.** Each page object owns its locators and offers user actions

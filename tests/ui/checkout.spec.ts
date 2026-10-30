@@ -6,7 +6,7 @@ test.describe('Checkout as a logged-in customer', { tag: '@checkout' }, () => {
   test.use({ loggedIn: true });
 
   test(
-    'customer can order two products',
+    '[TC-116] customer can order two products',
     { tag: ['@smoke', '@e2e'] },
     async ({ homePage, productPage, checkoutPage, productsApi, testUser }) => {
       // Ordering uses up the shared demo's stock, so pick two products that are in stock now.
@@ -41,7 +41,7 @@ test.describe('Checkout as a logged-in customer', { tag: '@checkout' }, () => {
     },
   );
 
-  test('cart line prices and total add up', async ({ homePage, productPage, checkoutPage, productsApi }) => {
+  test('[TC-117] cart line prices and total add up', async ({ homePage, productPage, checkoutPage, productsApi }) => {
     const [first, second] = await productsApi.findInStockOnFirstPage(2);
     await homePage.open();
     await homePage.openProduct(first.name);
@@ -64,7 +64,7 @@ test.describe('Checkout as a logged-in customer', { tag: '@checkout' }, () => {
 });
 
 test.describe('Checkout as a guest', { tag: '@checkout' }, () => {
-  test('guest is asked to sign in at checkout', async ({ homePage, productPage, checkoutPage }) => {
+  test('[TC-118] guest is asked to sign in at checkout', async ({ homePage, productPage, checkoutPage }) => {
     await homePage.open();
     await homePage.openProduct('Claw Hammer');
     await productPage.addToCart();
@@ -78,7 +78,7 @@ test.describe('Checkout as a guest', { tag: '@checkout' }, () => {
   });
 
   test(
-    'a cart filled through the API shows up in the browser',
+    '[TC-119] a cart filled through the API shows up in the browser',
     { tag: '@hybrid' },
     async ({ page, cartsApi, productsApi, checkoutPage }) => {
       // Arrange through the API: fast and independent of the product pages.

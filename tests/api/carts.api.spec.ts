@@ -10,7 +10,7 @@ const test = base.extend<{ cartId: string }>({
 });
 
 test.describe('Carts API', { tag: '@carts' }, () => {
-  test('a new cart is empty', { tag: '@smoke' }, async ({ cartsApi, cartId }) => {
+  test('[TC-208] a new cart is empty', { tag: '@smoke' }, async ({ cartsApi, cartId }) => {
     const cart = await cartsApi.getCart(cartId);
 
     expect(cart.id).toBe(cartId);
@@ -18,7 +18,7 @@ test.describe('Carts API', { tag: '@carts' }, () => {
   });
 
   test(
-    'an added product is in the cart with its quantity',
+    '[TC-209] an added product is in the cart with its quantity',
     { tag: '@smoke' },
     async ({ cartsApi, productsApi, cartId }) => {
       const hammer = await productsApi.findByName('Claw Hammer');
@@ -34,7 +34,7 @@ test.describe('Carts API', { tag: '@carts' }, () => {
     },
   );
 
-  test('quantity can be changed and the product removed', async ({ cartsApi, productsApi, cartId }) => {
+  test('[TC-210] quantity can be changed and the product removed', async ({ cartsApi, productsApi, cartId }) => {
     const hammer = await productsApi.findByName('Claw Hammer');
     await cartsApi.addItem(cartId, hammer.id, 1);
 
@@ -47,7 +47,7 @@ test.describe('Carts API', { tag: '@carts' }, () => {
   });
 
   test(
-    'quantity below 1 is rejected with a field error',
+    '[TC-211] quantity below 1 is rejected with a field error',
     { tag: '@negative' },
     async ({ cartsApi, productsApi, cartId }) => {
       const hammer = await productsApi.findByName('Claw Hammer');
@@ -60,7 +60,7 @@ test.describe('Carts API', { tag: '@carts' }, () => {
     },
   );
 
-  test('unknown product id is rejected', { tag: '@negative' }, async ({ cartsApi, cartId }) => {
+  test('[TC-212] unknown product id is rejected', { tag: '@negative' }, async ({ cartsApi, cartId }) => {
     const response = await cartsApi.addItem(cartId, 'no-such-product', 1);
 
     expect(response.status()).toBe(422);
@@ -69,7 +69,7 @@ test.describe('Carts API', { tag: '@carts' }, () => {
   });
 
   test(
-    'business rule: only one Thor Hammer per cart',
+    '[TC-213] business rule: only one Thor Hammer per cart',
     { tag: '@negative' },
     async ({ cartsApi, productsApi, cartId }) => {
       const thorHammer = await productsApi.findByName('Thor Hammer');
@@ -83,7 +83,7 @@ test.describe('Carts API', { tag: '@carts' }, () => {
     },
   );
 
-  test('unknown cart id returns 404', { tag: '@negative' }, async ({ cartsApi }) => {
+  test('[TC-214] unknown cart id returns 404', { tag: '@negative' }, async ({ cartsApi }) => {
     const response = await cartsApi.getById('no-such-cart');
 
     expect(response.status()).toBe(404);

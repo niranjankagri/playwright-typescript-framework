@@ -8,7 +8,7 @@ test.describe('Login', { tag: '@login' }, () => {
   });
 
   test(
-    'customer can log in and lands on the account page',
+    '[TC-109] customer can log in and lands on the account page',
     { tag: '@smoke' },
     async ({ page, loginPage, accountPage, testUser }) => {
       await loginPage.login(testUser.email, testUser.password);
@@ -23,7 +23,7 @@ test.describe('Login', { tag: '@login' }, () => {
     },
   );
 
-  test('wrong password is rejected with a message', { tag: '@negative' }, async ({ loginPage, testUser }) => {
+  test('[TC-110] wrong password is rejected with a message', { tag: '@negative' }, async ({ loginPage, testUser }) => {
     await loginPage.login(testUser.email, 'not-the-password');
 
     await loginPage.expectLoginError('Invalid email or password');
@@ -32,14 +32,14 @@ test.describe('Login', { tag: '@login' }, () => {
     await loginPage.header.expectLoggedOut();
   });
 
-  test('empty form shows a message for each required field', { tag: '@negative' }, async ({ loginPage }) => {
+  test('[TC-111] empty form shows a message for each required field', { tag: '@negative' }, async ({ loginPage }) => {
     await loginPage.submitButton.click();
 
     await expect(loginPage.emailError).toHaveText('Email is required');
     await expect(loginPage.passwordError).toHaveText('Password is required');
   });
 
-  test('customer can sign out again', async ({ page, loginPage, accountPage, homePage, testUser }) => {
+  test('[TC-112] customer can sign out again', async ({ page, loginPage, accountPage, homePage, testUser }) => {
     await loginPage.login(testUser.email, testUser.password);
     await accountPage.expectRedirectedHere();
     await skipIfBotCheck(page, accountPage.pageTitle);
