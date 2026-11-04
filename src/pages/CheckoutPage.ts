@@ -110,24 +110,47 @@ export class CheckoutPage extends BasePage {
     await this.proceedFromSignInButton.click();
   }
 
-  /** Step 3 -> 4 */
+  /**
+   * Step 3 -> 4. After country, postal code and house number the shop calls
+   * GET /postcode-lookup and fills street, city and state from its answer.
+   *
+   * Wait for that answer to be IN the form before going on. The logged-in test user's own
+   * address (see AuthApi.register) is already in the form, so "Proceed" is enabled at once;
+   * clicking it before the lookup lands sends that profile address, which the shop then
+   * rejects at POST /invoices (422 "The city does not belong to the selected country").
+   * That happened on slow CI runs only, never locally, where the lookup is always first.
+   */
   @step('Checkout step 3: enter the billing address')
   async enterBillingAddress(address: BillingAddress): Promise<void> {
+    // Start listening before typing, so a fast answer cannot be missed. Only the lookup for
+    // the complete address counts: typing may also trigger lookups for partial input.
+    const lookup = this.page.waitForResponse(
+      (response) =>
+        response.url().includes('/postcode-lookup') &&
+        response.url().includes(`postcode=${address.postalCode}`) &&
+        response.url().includes(`house_number=${address.houseNumber}`),
+    );
     await this.countrySelect.selectOption({ label: address.country });
     await this.postalCodeInput.fill(address.postalCode);
     await this.houseNumberInput.fill(address.houseNumber);
-    // The button only becomes enabled once the form is valid (after the address lookup).
+
+    const response = await lookup;
+    expect(response.ok(), `postcode lookup failed: ${response.status()}`).toBe(true);
+    const found = (await response.json()) as { street: string };
+    // The street field shows the looked-up street: the form now holds the lookup's address.
+    await expect(this.streetInput).toHaveValue(found.street);
+
     await expect(this.proceedFromAddressButton).toBeEnabled();
     await this.proceedFromAddressButton.click();
   }
 
   /**
    * Step 4: choose a payment method, have it checked, then confirm the order.
-   * Confirm places the order with POST /invoices. The shared demo sometimes rejects a valid
-   * address there (422 "The city does not belong to the selected country" for 1010 Vienna, AT
-   * in CI run 40276006707; the retry with the same data passed) and the page shows nothing,
-   * so the API's answer is checked here: a rejected order fails with the shop's reason
-   * instead of a 10 s wait for a confirmation that never comes.
+   * Confirm places the order with POST /invoices. When the shop rejects the order the page
+   * shows nothing, so the API's answer is checked here: a rejected order fails with the
+   * shop's reason instead of a 10 s wait for a confirmation that never comes. (That reason is
+   * how the step 3 race was found: 422 "The city does not belong to the selected country"
+   * for the profile address, see enterBillingAddress.)
    */
   @step('Checkout step 4: pay with {0}')
   async payWith(method: PaymentMethod): Promise<void> {
