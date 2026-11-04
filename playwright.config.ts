@@ -23,8 +23,8 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
 
-  // On CI every job writes a blob report (named after the job, so they don't collide);
-  // a final job merges them into one HTML report for all browsers. Locally: list + HTML.
+  // On CI every shard writes a blob report (named after the shard, e.g. report-chromium-1.zip, so they don't collide);
+  // later jobs merge them per project (JUnit + JSON) and into one HTML report. Locally: list + HTML.
   reporter: env.isCI
     ? [
         ['github'],
