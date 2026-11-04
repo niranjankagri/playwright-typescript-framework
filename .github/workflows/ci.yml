@@ -1,5 +1,5 @@
-# Continuous integration: static checks first, then API and UI tests in parallel jobs,
-# then one merged HTML report for the whole run.
+# Continuous integration: static checks first, then the API and UI tests split into parallel
+# shards, then one result per project (api, chromium, firefox, webkit) and one merged HTML report.
 #
 # Runs on every push and pull request to main, by hand (Actions tab -> Run workflow),
 # and every night: the shop under test is a public demo that can change without any
@@ -36,18 +36,71 @@ jobs:
       - run: npm ci
       - run: npm run check
 
-  tests:
-    name: Tests (${{ matrix.project }})
+  # Each browser's UI tests are split across 2 machines with Playwright's --shard; the API
+  # tests take about a minute, so they stay in one job. More shards also mean more load on the
+  # public demo shop (2 workers each), so raise `total` only when a project gets slow.
+  # Keep the shard counts here in step with `shards` in the tests job below.
+  shards:
+    name: Shard (${{ matrix.project }} ${{ matrix.shard }}/${{ matrix.total }})
     needs: checks # no point starting browsers if the code does not even compile
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
-      fail-fast: false # one browser failing should not cancel the others
+      fail-fast: false # one shard failing should not cancel the others
       matrix:
-        project: [api, chromium, firefox, webkit]
+        include:
+          - { project: api, shard: 1, total: 1 }
+          - { project: chromium, shard: 1, total: 2 }
+          - { project: chromium, shard: 2, total: 2 }
+          - { project: firefox, shard: 1, total: 2 }
+          - { project: firefox, shard: 2, total: 2 }
+          - { project: webkit, shard: 1, total: 2 }
+          - { project: webkit, shard: 2, total: 2 }
     env:
-      # Names this job's blob report (see playwright.config.ts).
-      BLOB_NAME: ${{ matrix.project }}
+      # Names this shard's blob report, e.g. report-chromium-1.zip (see playwright.config.ts).
+      BLOB_NAME: ${{ matrix.project }}-${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm # reuses downloaded packages between runs (keyed on package-lock.json)
+      - run: npm ci
+
+      # Only the browser this job needs (with its system libraries); the API job needs none.
+      - name: Install ${{ matrix.project }}
+        if: matrix.project != 'api'
+        run: npx playwright install --with-deps ${{ matrix.project }}
+
+      # --shard=1/2 runs the first half of the test files of this project, 2/2 the rest.
+      - name: Run tests
+        run: npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}/${{ matrix.total }}
+
+      # Upload even when tests failed: that is exactly when the report is needed.
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-report-${{ matrix.project }}-${{ matrix.shard }}
+          path: blob-report
+          retention-days: 3
+
+  # One job per project merges that project's shards into a single result, so the pull
+  # request checks (and the "Protect main" ruleset) still see Tests (api), Tests (chromium),
+  # Tests (firefox) and Tests (webkit), and the artifacts keep their unsharded names.
+  tests:
+    name: Tests (${{ matrix.project }})
+    needs: shards
+    if: ${{ !cancelled() }} # also runs when a shard failed: this job reports it
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { project: api, shards: 1 }
+          - { project: chromium, shards: 2 }
+          - { project: firefox, shards: 2 }
+          - { project: webkit, shards: 2 }
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -56,22 +109,25 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # Only the browser this job needs (with its system libraries); the API job needs none.
-      - name: Install ${{ matrix.project }}
-        if: matrix.project != 'api'
-        run: npx playwright install --with-deps ${{ matrix.project }}
-
-      - name: Run tests
-        run: npx playwright test --project=${{ matrix.project }}
-
-      # Upload even when tests failed: that is exactly when the report is needed.
-      - name: Upload blob report
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+      - name: Download the blob reports of ${{ matrix.project }}
+        uses: actions/download-artifact@v8
         with:
-          name: blob-report-${{ matrix.project }}
-          path: blob-report
-          retention-days: 3
+          path: blob-reports
+          pattern: blob-report-${{ matrix.project }}-*
+          merge-multiple: true
+
+      # The same JUnit XML and JSON files one unsharded job would write (test names, retries,
+      # flaky tests unchanged). Skipped when no shard uploaded anything; the check below says so.
+      - name: Merge the shards
+        if: ${{ hashFiles('blob-reports/*.zip') != '' }}
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE: test-results/junit.xml
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/results.json
+        run: npx playwright merge-reports --reporter junit,json ./blob-reports
+
+      # Fails this job when a shard is missing or a test failed (see the script's comment).
+      - name: Check the merged results
+        run: node src/ci/check-merged-results.mts blob-reports ${{ matrix.shards }} test-results/results.json
 
       # JUnit XML only, as its own artifact: the CI results collection of
       # automation-coverage-quality-intelligence imports it (config/producers.toml there)
@@ -97,7 +153,7 @@ jobs:
 
   report:
     name: Merge HTML report
-    needs: tests
+    needs: [shards, tests]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -115,7 +171,7 @@ jobs:
           pattern: blob-report-*
           merge-multiple: true
 
-      # One HTML report with every project (api, chromium, firefox, webkit) of this run.
+      # One HTML report with every shard of every project (api, chromium, firefox, webkit) of this run.
       - name: Merge into one HTML report
         run: npx playwright merge-reports --reporter html ./all-blob-reports
 

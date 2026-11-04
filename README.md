@@ -21,14 +21,14 @@ a demo web shop built for testers (Angular front end + REST API), written with
 
 ## Tech stack
 
-|               |                                                                                                            |
-| ------------- | ---------------------------------------------------------------------------------------------------------- |
-| Test runner   | Playwright Test 1.64 (TypeScript, no extra compiler step)                                                  |
-| Language      | TypeScript 6.0, strict mode                                                                                |
-| API contracts | zod 4 schemas, which also provide the TypeScript types                                                     |
-| Static checks | `tsc`, ESLint (typescript-eslint, type-aware + eslint-plugin-playwright), Prettier                         |
-| CI            | GitHub Actions: checks, then 4 parallel jobs (api, chromium, firefox, webkit), then one merged HTML report |
-| Node          | 20.12 or newer (CI uses 24)                                                                                |
+|               |                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Test runner   | Playwright Test 1.64 (TypeScript, no extra compiler step)                                                                         |
+| Language      | TypeScript 6.0, strict mode                                                                                                       |
+| API contracts | zod 4 schemas, which also provide the TypeScript types                                                                            |
+| Static checks | `tsc`, ESLint (typescript-eslint, type-aware + eslint-plugin-playwright), Prettier                                                |
+| CI            | GitHub Actions: checks, then 7 parallel shards (`--shard`; api 1, each browser 2), one result per project, one merged HTML report |
+| Node          | 20.12 or newer (CI uses 24)                                                                                                       |
 
 ## Quick start
 
@@ -178,11 +178,21 @@ snapshots, network and console) and a page snapshot (`error-context.md`). On a r
 (the demo can change without a commit here):
 
 1. **checks**: `npm run check` (typecheck, ESLint, Prettier). Nothing else starts if this fails.
-2. **tests**: four parallel jobs, `api`, `chromium`, `firefox`, `webkit`; each installs only its own browser and uploads
-   a blob report, also when tests fail.
-3. **report**: merges the blob reports into one HTML report for all four projects (artifact `playwright-report`).
+2. **shards**: seven parallel jobs. The API tests run in one job; the UI tests of each browser are split across two
+   machines with Playwright's `--shard=1/2` and `--shard=2/2`. Each job installs only its own browser and uploads a blob
+   report, also when tests fail.
+3. **tests**: one job per project (`Tests (api)`, `Tests (chromium)`, ...) merges that project's shards with
+   `playwright merge-reports` into the same JUnit XML and JSON report an unsharded run writes, then
+   [`src/ci/check-merged-results.mts`](src/ci/check-merged-results.mts) fails the job if a shard is missing or a test
+   failed. So the pull request checks and the artifact names did not change when sharding came in.
+4. **report**: merges all blob reports into one HTML report for every shard of every project (artifact
+   `playwright-report`).
 
-On CI there are 2 retries, 2 workers per job, and `forbidOnly`, so a forgotten `test.only` fails the build. Each test
+To add machines, raise `total` for a project in the `shards` matrix and `shards` in the `tests` matrix to the same
+number. Every shard also means 2 more workers hitting the public demo shop, which rate-limits bursts, so 2 per browser
+is the current balance (a browser job took about 2 to 2.5 minutes unsharded).
+
+On CI there are 2 retries, 2 workers per shard, and `forbidOnly`, so a forgotten `test.only` fails the build. Each `tests`
 job also uploads its JUnit XML (`junit-<project>`) and Playwright's JSON report (`playwright-json-<project>`), which
 [Automation Coverage & Quality Intelligence](https://github.com/niranjankagri/automation-coverage-quality-intelligence) collects. The JSON keeps every
 retry attempt: JUnit records a test that passed on a retry as plain passed, so flaky tests are only visible there.
